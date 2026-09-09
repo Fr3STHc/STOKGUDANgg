@@ -2200,11 +2200,17 @@ function updateClock() {
     if (el) el.textContent = new Date().toLocaleString('id-ID', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 // Menerapkan preferensi tema (gelap/terang) yang tersimpan saat halaman pertama kali dimuat.
+// PENTING: fungsi ini harus dipanggil SEBELUM lucide.createIcons(), karena lucide mengganti
+// tag <i data-lucide="..."> menjadi <svg> -- kalau dipanggil sesudahnya, tag <i> sudah tidak
+// ada lagi sehingga querySelector('#theme-toggle i') gagal (null) dan melempar error.
 function initTheme() {
     const saved = localStorage.getItem('gudangkita_theme');
     if (saved === 'dark') {
         document.body.classList.remove('light-mode'); document.body.classList.add('dark-mode');
-        document.querySelector('#theme-toggle i').setAttribute('data-lucide', 'sun');
+        // Pakai selector atribut [data-lucide], bukan tag "i", supaya tetap ketemu baik
+        // saat elemennya masih <i> (belum dirender lucide) maupun sudah jadi <svg>.
+        const icon = document.querySelector('#theme-toggle [data-lucide]');
+        if (icon) icon.setAttribute('data-lucide', 'sun');
     }
 }
 // Mengganti tema antara terang dan gelap, lalu menyimpan preferensinya ke localStorage.
@@ -2212,13 +2218,15 @@ function toggleTheme() {
     const isDark = document.body.classList.toggle('dark-mode');
     document.body.classList.toggle('light-mode', !isDark);
     localStorage.setItem('gudangkita_theme', isDark ? 'dark' : 'light');
-    document.querySelector('#theme-toggle i').setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+    const icon = document.querySelector('#theme-toggle [data-lucide]');
+    if (icon) icon.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
     if (window.lucide) lucide.createIcons();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    if (window.lucide) lucide.createIcons();
+    // initTheme() HARUS dipanggil sebelum lucide.createIcons(), lihat catatan di atas.
     initTheme();
+    if (window.lucide) lucide.createIcons();
 
     document.getElementById('login-form').addEventListener('submit', doLogin);
     document.getElementById('logout-btn').addEventListener('click', doLogout);
